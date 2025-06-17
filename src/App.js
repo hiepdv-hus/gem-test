@@ -1,103 +1,75 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './App.css';
+import { MapContainer, TileLayer, Marker, Popup, Polyline } from 'react-leaflet';
+import L from 'leaflet'; // Import thư viện Leaflet
+import { Android } from "iconsax-react"; // Import biểu tượng Android từ iconsax-react
+
+// Đảm bảo bạn có style cho bản đồ
+import 'leaflet/dist/leaflet.css';
+
+const center = [21.0285, 105.8542]; // Vị trí trung tâm Hồ Gươm
+const startPosition = [21.0334, 105.7988]; // Vị trí Cầu Giấy
+
+// Tạo một icon người bằng cách sử dụng React component và chuyển nó thành HTML element
+const personIcon = new L.DivIcon({
+  className: 'custom-icon',
+  html: `<div style="font-size: 30px; color: green;">${<Android />}</div>`, // Thêm biểu tượng vào trong div
+  iconSize: [32, 32], // Kích thước icon
+  iconAnchor: [16, 32], // Điểm neo icondsgds
+  popupAnchor: [0, -32], // Đảm bảo popup hiển thị đúng
+});
 
 const App = () => {
-  const [unit, setUnit] = useState('%');
-  const [value, setValue] = useState('1.0');
-  const [previousValidValue, setPreviousValidValue] = useState('1.0');
+  const [markerPosition, setMarkerPosition] = useState(startPosition);
 
-  const sanitizeInput = (val) => {
-    let sanitized = val.replace(',', '.');
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setMarkerPosition(prevPosition => {
+        // Tính toán dần dần di chuyển từ Cầu Giấy đến Hồ Gươm
+        const latDiff = center[0] - prevPosition[0];
+        const lngDiff = center[1] - prevPosition[1];
 
-    if (/^[^0-9]/.test(sanitized) && sanitized[0] !== '.') {
-      return '0';
-    }
+        // Nếu đã di chuyển đến Hồ Gươm, quay lại Cầu Giấy
+        if (Math.abs(latDiff) < 0.0001 && Math.abs(lngDiff) < 0.0001) {
+          // Reset lại vị trí nếu đã đến Hồ Gươm
+          setMarkerPosition(startPosition);
+          return startPosition;
+        }
 
-    let validPart = '';
-    for (let i = 0; i < sanitized.length; i++) {
-      if (/[0-9.]/.test(sanitized[i])) {
-        validPart += sanitized[i];
-      } else {
-        break;
-      }
-    }
+        // Di chuyển từ Cầu Giấy đến Hồ Gươm
+        return [
+          prevPosition[0] + latDiff * 0.05, // Di chuyển dần dần theo vĩ độ
+          prevPosition[1] + lngDiff * 0.05, // Di chuyển dần dần theo kinh độ
+        ];
+      });
+    }, 100); // Mỗi 100ms thay đổi vị trí
 
-    if (validPart === '' || validPart === '.') return '0';
+    return () => clearInterval(interval); // Dọn dẹp khi component unmount
+  }, []);
 
-    const parts = validPart.split('.');
-    if (parts.length > 2) {
-      validPart = parts[0] + '.' + parts[1];
-    }
-
-    const parsed = parseFloat(validPart);
-    if (isNaN(parsed)) return '0';
-    if (parsed < 0) return '0';
-    if (unit === '%' && parsed > 100) return previousValidValue;
-
-    return parsed.toString();
-  };
-
-  const handleInputChange = (e) => {
-    const inputValue = e.target.value;
-    const sanitizedValue = sanitizeInput(inputValue);
-    setValue(inputValue);
-    setPreviousValidValue(sanitizedValue);
-  };
-
-  const handleBlur = () => {
-    const sanitizedValue = sanitizeInput(value);
-    setValue(sanitizedValue);
-  };
-
-  const handleUnitChange = (newUnit) => {
-    setUnit(newUnit);
-    const parsedValue = parseFloat(value);
-    if (newUnit === '%' && parsedValue > 100) {
-      setValue('100');
-      setPreviousValidValue('100');
-    }
-  };
-
-  const increment = () => {
-    const parsedValue = parseFloat(value);
-    const newValue = parsedValue + 1;
-    const limitedValue = unit === '%' ? Math.min(newValue, 100) : newValue;
-    const formattedValue = Number.isInteger(limitedValue) ? limitedValue.toString() : limitedValue.toFixed(1);
-    setValue(formattedValue);
-    setPreviousValidValue(formattedValue);
-  };
-
-  const decrement = () => {
-    const parsedValue = parseFloat(value);
-    const newValue = parsedValue - 1;
-    const limitedValue = Math.max(newValue, 0);
-    const formattedValue = Number.isInteger(limitedValue) ? limitedValue.toString() : limitedValue.toFixed(1);
-    setValue(formattedValue);
-    setPreviousValidValue(formattedValue);
-  };
+  const route = [startPosition, center]; // Đường đi từ Cầu Giấy đến Hồ Gươm
 
   return (
-    <div className="unit-input-wrapper">
-      <div className="row">
-        <div>Unit</div>
-        <div className="unit-switch">
-          <button className={unit === '%' ? 'active' : ''} onClick={() => handleUnitChange('%')}>%</button>
-          <button className={unit === 'px' ? 'active' : ''} onClick={() => handleUnitChange('px')}>px</button>
-        </div>
-      </div>
-      <div className="row">
-        <div>Value</div>
-        <div className="stepper">
-          <button className="button-decrement" onClick={decrement} disabled={parseFloat(value) <= 0}>-</button>
-          <input
-            type="text"
-            value={value}
-            onChange={handleInputChange}
-            onBlur={handleBlur}
-          />
-          <button className="button-increment" onClick={increment} disabled={unit === '%' && parseFloat(value) >= 100}>+</button>
-        </div>
-      </div>
+    <div className="App">
+      <MapContainer
+        center={center}
+        zoom={13}
+        style={{ height: '100vh', width: '100%' }}
+      >
+        <TileLayer
+          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        />
+        
+        {/* Đoạn đường màu đỏ */}
+        <Polyline positions={route} color="red" />
+        
+        {/* Marker với icon người */}
+        <Marker position={markerPosition} icon={personIcon}>
+          <Popup>
+            Trung tâm Hồ Gươm.
+          </Popup>
+        </Marker>
+      </MapContainer>
     </div>
   );
 };
