@@ -36,7 +36,7 @@ const MapboxExample = () => {
     mapRef.current = new mapboxgl.Map({
       container: mapContainerRef.current,
       style: 'mapbox://styles/mapbox/streets-v11', // Kiểu bản đồ
-      center: [userLocation.lng, userLocation.lat], // Vị trí hiện tại của người dùng
+      center: [105.8901, 21.0447], // Tọa độ Long Biên, Việt Nam
       zoom: 14, // Mức zoom
       pitch: 45, // Góc nghiêng để có hiệu ứng 3D
       bearing: 0, // Hướng tầm nhìn
@@ -102,6 +102,22 @@ const MapboxExample = () => {
         });
       })
       .catch(err => console.error('Error fetching directions: ', err));
+
+    // Mở chế độ 3D cho các tòa nhà
+    mapRef.current.on('style.load', () => {
+      mapRef.current.addLayer({
+        'id': '3d-buildings',
+        'type': 'fill-extrusion',
+        'source': 'composite',
+        'source-layer': 'building',
+        'paint': {
+          'fill-extrusion-color': '#aaa',
+          'fill-extrusion-height': ['get', 'height'],
+          'fill-extrusion-base': ['get', 'min_height'],
+          'fill-extrusion-opacity': 0.6
+        }
+      });
+    });
 
   }, [userLocation]);
 
