@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import * as mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
+import IcLocation from "./location.svg"; // Đảm bảo rằng đường dẫn tới file hình là chính xác
 
 const MapboxExample = () => {
   const mapContainerRef = useRef();
@@ -55,6 +56,20 @@ const MapboxExample = () => {
       mapRef.current.setPitch(45); // Cài đặt góc nghiêng của bản đồ
     });
 
+    // Thêm Marker cho vị trí hiện tại của người dùng
+    const marker = new mapboxgl.Marker({
+      element: document.createElement('div'),
+    })
+      .setLngLat([userLocation.lng, userLocation.lat])
+      .setPopup(new mapboxgl.Popup().setHTML("<h3>Vị trí của tôi</h3>"))
+      .addTo(mapRef.current);
+
+    // Cài đặt biểu tượng cho Marker
+    const markerElement = marker.getElement();
+    markerElement.style.backgroundImage = `url(${IcLocation})`;
+    markerElement.style.backgroundSize = 'contain';
+    markerElement.style.width = '30px';
+    markerElement.style.height = '30px';
   }, [userLocation]);
 
   return (
