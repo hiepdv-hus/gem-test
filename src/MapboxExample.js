@@ -70,6 +70,39 @@ const MapboxExample = () => {
     markerElement.style.backgroundSize = 'contain';
     markerElement.style.width = '30px';
     markerElement.style.height = '30px';
+
+    // Thêm chức năng hướng dẫn đường từ vị trí hiện tại đến Hồ Gươm
+    const start = [userLocation.lng, userLocation.lat]; // Tọa độ vị trí hiện tại của người dùng
+    const end = [105.854444, 21.028511]; // Tọa độ Hồ Gươm
+
+    // Gọi API Mapbox Directions để tính toán lộ trình
+    fetch(`https://api.mapbox.com/directions/v5/mapbox/driving/${start[0]},${start[1]};${end[0]},${end[1]}?alternatives=false&geometries=geojson&access_token=${mapboxgl.accessToken}`)
+      .then(response => response.json())
+      .then(data => {
+        const route = data.routes[0].geometry;
+
+        // Vẽ lộ trình lên bản đồ
+        mapRef.current.addSource('route', {
+          type: 'geojson',
+          data: {
+            type: 'Feature',
+            geometry: route,
+          },
+        });
+
+        mapRef.current.addLayer({
+          id: 'route',
+          type: 'line',
+          source: 'route',
+          paint: {
+            'line-color': '#3b9ddd',
+            'line-width': 5,
+            'line-opacity': 0.75,
+          },
+        });
+      })
+      .catch(err => console.error('Error fetching directions: ', err));
+
   }, [userLocation]);
 
   return (
