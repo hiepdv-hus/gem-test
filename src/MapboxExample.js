@@ -42,34 +42,6 @@ const MapboxExample = () => {
         if (!map.hasImage('hospital-icon')) {
           map.addImage('hospital-icon', image);
         }
-
-        // Add GeoJSON source for hospital location
-        map.addSource('hospital-marker', {
-          type: 'geojson',
-          data: {
-            type: 'FeatureCollection',
-            features: [
-              {
-                type: 'Feature',
-                geometry: {
-                  type: 'Point',
-                  coordinates: [105.8539, 21.031900] // Gần Hồ Gươm
-                }
-              }
-            ]
-          }
-        });
-
-        map.addLayer({
-          id: 'hospital-layer',
-          type: 'symbol',
-          source: 'hospital-marker',
-          layout: {
-            'icon-image': 'hospital-icon',
-            'icon-size': 0.1, // Điều chỉnh kích thước
-            'icon-allow-overlap': true
-          }
-        });
       });
 
       // Thêm lớp Threebox như cũ
