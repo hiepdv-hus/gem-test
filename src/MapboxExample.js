@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import mapboxgl from 'mapbox-gl';
 import { Threebox } from 'threebox-plugin';
+import hospitalIcon from './hospital.png'; // Đảm bảo ảnh có trong src hoặc public nếu dùng URL
 
 import 'mapbox-gl/dist/mapbox-gl.css';
 
@@ -21,7 +22,7 @@ const MapboxExample = () => {
           show3dObjects: false
         }
       },
-      center: [105.854444, 21.028511], // Tọa độ Hồ Gươm
+      center: [105.854444, 21.028511],
       zoom: 17,
       pitch: 60,
       bearing: 0,
@@ -29,32 +30,85 @@ const MapboxExample = () => {
     });
 
     mapRef.current.on('style.load', () => {
-      if (!mapRef.current.getLayer('custom-threebox-model')) {
-        mapRef.current.addLayer({
+      const map = mapRef.current;
+
+      // Load and add image as a marker icon
+      map.loadImage(hospitalIcon, (error, image) => {
+        if (error) {
+          console.error('Error loading hospital icon:', error);
+          return;
+        }
+
+        if (!map.hasImage('hospital-icon')) {
+          map.addImage('hospital-icon', image);
+        }
+
+        // Add GeoJSON source for hospital location
+        map.addSource('hospital-marker', {
+          type: 'geojson',
+          data: {
+            type: 'FeatureCollection',
+            features: [
+              {
+                type: 'Feature',
+                geometry: {
+                  type: 'Point',
+                  coordinates: [105.8539, 21.031900] // Gần Hồ Gươm
+                }
+              }
+            ]
+          }
+        });
+
+        map.addLayer({
+          id: 'hospital-layer',
+          type: 'symbol',
+          source: 'hospital-marker',
+          layout: {
+            'icon-image': 'hospital-icon',
+            'icon-size': 0.1, // Điều chỉnh kích thước
+            'icon-allow-overlap': true
+          }
+        });
+      });
+
+      // Thêm lớp Threebox như cũ
+      if (!map.getLayer('custom-threebox-model')) {
+        map.addLayer({
           id: 'custom-threebox-model',
           type: 'custom',
           renderingMode: '3d',
           onAdd: function () {
-            window.tb = new Threebox(
-              mapRef.current,
-              mapRef.current.getCanvas().getContext('webgl'),
-              { defaultLights: true }
-            );
+            window.tb = new Threebox(map, map.getCanvas().getContext('webgl'), {
+              defaultLights: true
+            });
 
-            const scale = 3.2;
-            const options = {
+            const metlifeOptions = {
               obj: 'https://docs.mapbox.com/mapbox-gl-js/assets/metlife-building.gltf',
               type: 'gltf',
-              scale: { x: scale, y: scale, z: 2.7 },
+              scale: { x: 3.2, y: 3.2, z: 2.7 },
               units: 'meters',
               rotation: { x: 90, y: -90, z: 0 }
             };
 
-            // Đặt mô hình 3D gần Hồ Gươm
-            window.tb.loadObj(options, (model) => {
+            window.tb.loadObj(metlifeOptions, (model) => {
               model.setCoords([105.854444, 21.028511]);
               model.setRotation({ x: 0, y: 0, z: 0 });
               window.tb.add(model);
+            });
+
+            const houseOptions = {
+              obj: 'https://docs.mapbox.com/mapbox-gl-js/assets/34M_17/34M_17.gltf',
+              type: 'gltf',
+              scale: { x: 2, y: 2, z: 2 },
+              units: 'meters',
+              rotation: { x: 90, y: 0, z: 0 }
+            };
+
+            window.tb.loadObj(houseOptions, (houseModel) => {
+              houseModel.setCoords([105.855000, 21.031500]);
+              houseModel.setRotation({ x: 0, y: 0, z: 0 });
+              window.tb.add(houseModel);
             });
           },
           render: function () {
