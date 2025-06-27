@@ -70,9 +70,9 @@ const AboutPage = () => {
 
     // Marker các điểm
     createMarker(userLocation.lng, userLocation.lat, IcLocation, 'Vị trí của tôi');
-    createMarker(105.8904, 21.046, IcHome2, 'Nhà tôi');
-    createMarker(105.8892, 21.0451, IcHome3, 'Bệnh viện');
-    createMarker(105.8895, 21.044, IcHospital, 'Bệnh viện');
+    // createMarker(105.8904, 21.046, IcHome2, 'Nhà tôi');
+    // createMarker(105.8892, 21.0451, IcHome3, 'Bệnh viện');
+    // createMarker(105.8895, 21.044, IcHospital, 'Bệnh viện');
 
     // Zoom listener → cập nhật size marker
     map.on('zoom', () => {
