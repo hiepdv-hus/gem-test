@@ -9,9 +9,9 @@ const App = () => {
   return (
     <Router>
       <nav className="nav-bar">
-        <Link to="/" style={{ marginRight: '10px' }}>Bản đồ 3D</Link>
+        <Link to="/" style={{ marginRight: '10px' }}>Mapbox</Link>
         {/* <Link to="/2-5D">Bản đồ 2.5D</Link> */}
-        <Link to="/2D">Bản đồ 2D</Link>
+        <Link to="/2D">OpenStreetMap</Link>
       </nav>
       <Routes>
         <Route path="/" element={<MapBoxExample />} />

@@ -1,138 +1,106 @@
-import React, { useEffect, useRef, useState } from 'react';
-import * as mapboxgl from 'mapbox-gl';
-import 'mapbox-gl/dist/mapbox-gl.css';
+import React, { useState, useRef } from 'react';
+import { MapContainer, TileLayer, Marker, Popup, Circle } from 'react-leaflet';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
 
-import IcLocation from './location.svg';
-import IcHome2 from './home2.png';
-import IcHome3 from './home11.webp';
-import IcHospital from './home14.png';
+// Fix icon issue với Leaflet trong React
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: require('leaflet/dist/images/marker-icon-2x.png'),
+  iconUrl: require('leaflet/dist/images/marker-icon.png'),
+  shadowUrl: require('leaflet/dist/images/marker-shadow.png'),
+});
 
-const AboutPage = () => {
-  const mapContainerRef = useRef();
-  const mapRef = useRef();
-  const [userLocation, setUserLocation] = useState(null);
-  const markerRefs = useRef([]);
+const MapboxExample = () => {
+  const [showIcon, setShowIcon] = useState(true);
+  const markerRef = useRef(null);
 
-  useEffect(() => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          setUserLocation({
-            lng: position.coords.longitude,
-            lat: position.coords.latitude,
-          });
-        },
-        (error) => {
-          console.error('Error getting location: ', error);
-        }
-      );
-    } else {
-      console.error('Geolocation is not supported by this browser.');
-    }
-  }, []);
+  // Tọa độ chính xác của Tháp Rùa: 21°01′40″N 105°51′08″E
+  // Chuyển đổi: 21°01′40″ = 21.0278°, 105°51′08″ = 105.8522°
+  const thapRuaPosition = [21.02785, 105.85229];
 
-  useEffect(() => {
-    if (!userLocation) return;
+  // Ranh giới hành chính - hình tròn bao quanh Tháp Rùa
+  // Bán kính tính bằng mét, dễ điều chỉnh
+  const administrativeRadius = 15; // 30 mét - có thể thay đổi dễ dàng
 
-    mapboxgl.accessToken =
-      'pk.eyJ1IjoiZGFuZ2FuaDI4NTk3IiwiYSI6ImNtYzBvazI5dzA0cWEybXB5bGw2OTR5aGIifQ.QmoEj4F4iS4nWPLtF8d_0w';
-
-    const map = new mapboxgl.Map({
-      container: mapContainerRef.current,
-      style: 'mapbox://styles/mapbox/streets-v11',
-      center: [105.8901, 21.0447],
-      zoom: 17.1
-    });
-
-    mapRef.current = map;
-
-    // Utility: tạo marker có ảnh động theo zoom
-    const createMarker = (lng, lat, iconUrl, popupText) => {
-      const marker = new mapboxgl.Marker({ element: document.createElement('div') })
-        .setLngLat([lng, lat])
-        .setPopup(new mapboxgl.Popup().setText(popupText))
-        .addTo(map);
-
-      const el = marker.getElement();
-      const zoom = map.getZoom();
-      const size = Math.min(zoom * 6, 100); // khởi tạo to hơn và giới hạn
-
-      el.style.backgroundImage = `url(${iconUrl})`;
-      el.style.backgroundSize = 'contain';
-      el.style.width = `${size}px`;
-      el.style.height = `${size}px`;
-      el.style.transition = 'width 0.2s, height 0.2s'; // mượt hơn khi zoom
-      el.style.backgroundRepeat = 'no-repeat';
-
-      markerRefs.current.push(el); // lưu để resize
-      return marker;
-    };
-
-    // Marker các điểm
-    createMarker(userLocation.lng, userLocation.lat, IcLocation, 'Vị trí của tôi');
-    // createMarker(105.8904, 21.046, IcHome2, 'Nhà tôi');
-    // createMarker(105.8892, 21.0451, IcHome3, 'Bệnh viện');
-    // createMarker(105.8895, 21.044, IcHospital, 'Bệnh viện');
-
-    // Zoom listener → cập nhật size marker
-    map.on('zoom', () => {
-      const zoom = map.getZoom();
-      console.log('🔍 Zoom hiện tại:', zoom.toFixed(2));
-
-      const size = Math.min(zoom * 6, 100);
-
-      markerRefs.current.forEach((el) => {
-        el.style.width = `${size}px`;
-        el.style.height = `${size}px`;
-      });
-    });
-
-    // Route: từ vị trí đến Hồ Gươm
-    const start = [userLocation.lng, userLocation.lat];
-    const end = [105.854444, 21.028511];
-
-    fetch(
-      `https://api.mapbox.com/directions/v5/mapbox/driving/${start[0]},${start[1]};${end[0]},${end[1]}?alternatives=false&geometries=geojson&access_token=${mapboxgl.accessToken}`
-    )
-      .then((res) => res.json())
-      .then((data) => {
-        const route = data.routes[0].geometry;
-
-        map.addSource('route', {
-          type: 'geojson',
-          data: {
-            type: 'Feature',
-            geometry: route
-          }
-        });
-
-        map.addLayer({
-          id: 'route',
-          type: 'line',
-          source: 'route',
-          paint: {
-            'line-color': '#3b9ddd',
-            'line-width': 5,
-            'line-opacity': 0.75
-          }
-        });
-      })
-      .catch((err) => console.error('❌ Error fetching directions:', err));
-
-    return () => {
-      map.remove();
-    };
-  }, [userLocation]);
+  // Icon tháp bằng emoji
+  const towerIcon = new L.DivIcon({
+    className: 'custom-tower-icon',
+    html: '<div style="font-size: 25px;">🗼</div>',
+    iconSize: [30, 30],
+    iconAnchor: [15, 30],
+    popupAnchor: [0, -30]
+  });
 
   return (
-    <div>
-      <div
-        ref={mapContainerRef}
-        style={{ height: '100vh', width: '100%' }}
-        className="map-container"
+    <MapContainer
+      center={thapRuaPosition}
+      zoom={17}
+      style={{ height: '100vh', width: '100%' }}
+      scrollWheelZoom={true}
+      doubleClickZoom={true}
+      zoomControl={true}
+      attributionControl={true}
+    >
+      <TileLayer
+        url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        maxZoom={19}
+        minZoom={0}
       />
-    </div>
+
+      {/* Ranh giới hành chính - Circle */}
+      <Circle
+        center={thapRuaPosition}
+        radius={administrativeRadius}
+        pathOptions={{
+          color: '#3388ff', // Màu viền xanh dương
+          fillColor: '#3388ff', // Màu nền xanh dương
+          fillOpacity: 0.2,
+          weight: 2
+        }}
+      />
+
+      {/* Marker cho Tháp Rùa - ẩn icon khi popup mở */}
+      <Marker
+        position={thapRuaPosition}
+        icon={towerIcon}
+        ref={markerRef}
+        eventHandlers={{
+          popupopen: () => {
+            setShowIcon(false);
+            // Ẩn icon element
+            if (markerRef.current) {
+              const iconElement = markerRef.current.getElement();
+              if (iconElement) {
+                iconElement.style.display = 'none';
+              }
+            }
+          },
+          popupclose: () => {
+            setShowIcon(true);
+            // Hiển thị lại icon element
+            if (markerRef.current) {
+              const iconElement = markerRef.current.getElement();
+              if (iconElement) {
+                iconElement.style.display = 'block';
+              }
+            }
+          }
+        }}
+      >
+        <Popup>
+          <div>
+            <h3>Tháp Rùa</h3>
+            <p>Tháp Rùa là một ngôi tháp nhỏ nằm ở trung tâm Hồ Gươm, quận Hoàn Kiếm, thành phố Hà Nội.</p>
+            <p><strong>Tọa độ:</strong> 21°01′40″N 105°51′08″E</p>
+            <p><strong>Địa chỉ:</strong> Hồ Hoàn Kiếm, quận Hoàn Kiếm, thành phố Hà Nội</p>
+            <p><strong>Ranh giới:</strong> Đảo Ngọc Sơn</p>
+          </div>
+        </Popup>
+      </Marker>
+    </MapContainer>
   );
 };
 
-export default AboutPage;
+export default MapboxExample;
