@@ -36,6 +36,39 @@ const MapboxExample = () => {
     mapRef.current.on('load', () => {
       const map = mapRef.current;
 
+      // Điều chỉnh để hiển thị nhiều chi tiết hơn (POI, labels, tên đường)
+      // Tăng kích thước text và hiển thị nhiều labels hơn
+      try {
+        // Điều chỉnh các layer label để hiển thị nhiều hơn
+        const labelLayers = [
+          'poi-label',
+          'poi-scalerank2',
+          'poi-scalerank1',
+          'road-label',
+          'road-number-shield',
+          'place-label',
+          'place-city-lg-n',
+          'place-city-md-n',
+          'place-city-sm',
+          'place-town',
+          'place-village'
+        ];
+
+        labelLayers.forEach((layerId) => {
+          if (map.getLayer(layerId)) {
+            // Tăng kích thước text nếu có
+            const textSize = map.getLayoutProperty(layerId, 'text-size');
+            if (textSize) {
+              // Giữ nguyên hoặc tăng nhẹ
+            }
+            // Đảm bảo visibility
+            map.setLayoutProperty(layerId, 'visibility', 'visible');
+          }
+        });
+      } catch (e) {
+        console.log('Một số layer không tồn tại:', e);
+      }
+
       // Hàm tạo circle GeoJSON
       const createCircle = (center, radiusInMeters) => {
         const points = 64;
@@ -89,17 +122,9 @@ const MapboxExample = () => {
         }
       });
 
-      // Tạo marker với icon tháp
-      const el = document.createElement('div');
-      el.className = 'custom-tower-marker';
-      el.innerHTML = '<div style="font-size: 25px;">🗼</div>';
-      el.style.cursor = 'pointer';
-
-      markerRef.current = new mapboxgl.Marker({
-        element: el
-      })
-        .setLngLat(thapRuaPosition)
-        .addTo(map);
+      // Ẩn ranh giới ngay từ đầu
+      map.setLayoutProperty('boundary-circle-fill', 'visibility', 'none');
+      map.setLayoutProperty('boundary-circle-stroke', 'visibility', 'none');
 
       // Tạo popup
       const popupContent = `
@@ -115,18 +140,19 @@ const MapboxExample = () => {
       popupRef.current = new mapboxgl.Popup({ offset: 25 })
         .setHTML(popupContent);
 
-      markerRef.current.setPopup(popupRef.current);
+      // Tạo invisible marker để click vào vị trí mở popup
+      const invisibleEl = document.createElement('div');
+      invisibleEl.style.width = '30px';
+      invisibleEl.style.height = '30px';
+      invisibleEl.style.cursor = 'pointer';
+      invisibleEl.style.opacity = '0';
 
-      // Xử lý ẩn/hiện icon khi popup mở/đóng
-      popupRef.current.on('open', () => {
-        setShowIcon(false);
-        el.style.display = 'none';
-      });
-
-      popupRef.current.on('close', () => {
-        setShowIcon(true);
-        el.style.display = 'block';
-      });
+      markerRef.current = new mapboxgl.Marker({
+        element: invisibleEl
+      })
+        .setLngLat(thapRuaPosition)
+        .setPopup(popupRef.current)
+        .addTo(map);
     });
 
     return () => {
