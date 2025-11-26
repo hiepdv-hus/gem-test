@@ -1,119 +1,68 @@
-import React, { useEffect, useRef } from 'react';
-import mapboxgl from 'mapbox-gl';
-import { Threebox } from 'threebox-plugin';
-import hospitalIcon from './hospital.png'; // Đảm bảo ảnh có trong src hoặc public nếu dùng URL
-// Xóa dòng import homeIcon vì nó gây lỗi webpack
+import React from 'react';
+import { MapContainer, TileLayer, Marker, Popup, Circle } from 'react-leaflet';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
 
-import 'mapbox-gl/dist/mapbox-gl.css';
+// Fix icon issue với Leaflet trong React
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: require('leaflet/dist/images/marker-icon-2x.png'),
+  iconUrl: require('leaflet/dist/images/marker-icon.png'),
+  shadowUrl: require('leaflet/dist/images/marker-shadow.png'),
+});
 
 const MapboxExample = () => {
-  const mapContainerRef = useRef(null);
-  const mapRef = useRef(null);
+  // Tọa độ chính xác của Tháp Rùa: 21°01′40″N 105°51′08″E
+  // Chuyển đổi: 21°01′40″ = 21.0278°, 105°51′08″ = 105.8522°
+  const thapRuaPosition = [21.02785, 105.85229];
 
-  useEffect(() => {
-    mapboxgl.accessToken =
-      'pk.eyJ1IjoiZGFuZ2FuaDI4NTk3IiwiYSI6ImNtYzBvazI5dzA0cWEybXB5bGw2OTR5aGIifQ.QmoEj4F4iS4nWPLtF8d_0w';
+  // Ranh giới hành chính - hình tròn bao quanh Tháp Rùa
+  // Bán kính tính bằng mét, dễ điều chỉnh
+  const administrativeRadius = 15; // 30 mét - có thể thay đổi dễ dàng
 
-    mapRef.current = new mapboxgl.Map({
-      container: mapContainerRef.current,
-      style: 'mapbox://styles/mapbox/standard',
-      config: {
-        basemap: {
-          theme: 'monochrome',
-          show3dObjects: false
-        }
-      },
-      center: [105.854444, 21.028511],
-      zoom: 17,
-      pitch: 60,
-      bearing: 0,
-      antialias: true
-    });
+  return (
+    <MapContainer
+      center={thapRuaPosition}
+      zoom={17}
+      style={{ height: '100vh', width: '100%' }}
+      scrollWheelZoom={true}
+      doubleClickZoom={true}
+      zoomControl={true}
+      attributionControl={true}
+    >
+      <TileLayer
+        url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        maxZoom={19}
+        minZoom={0}
+      />
 
-    mapRef.current.on('style.load', () => {
-      const map = mapRef.current;
+      {/* Ranh giới hành chính - Circle */}
+      <Circle
+        center={thapRuaPosition}
+        radius={administrativeRadius}
+        pathOptions={{
+          color: '#3388ff', // Màu viền xanh dương
+          fillColor: '#3388ff', // Màu nền xanh dương
+          fillOpacity: 0.2,
+          weight: 2
+        }}
+      />
 
-      // Load and add image as a marker icon
-      map.loadImage(hospitalIcon, (error, image) => {
-        if (error) {
-          console.error('Error loading hospital icon:', error);
-          return;
-        }
-
-        if (!map.hasImage('hospital-icon')) {
-          map.addImage('hospital-icon', image);
-        }
-      });
-
-      // Thêm lớp Threebox như cũ
-      if (!map.getLayer('custom-threebox-model')) {
-        map.addLayer({
-          id: 'custom-threebox-model',
-          type: 'custom',
-          renderingMode: '3d',
-          onAdd: function () {
-            window.tb = new Threebox(map, map.getCanvas().getContext('webgl'), {
-              defaultLights: true
-            });
-
-            const metlifeOptions = {
-              obj: 'https://docs.mapbox.com/mapbox-gl-js/assets/metlife-building.gltf',
-              type: 'gltf',
-              scale: { x: 3.2, y: 3.2, z: 2.7 },
-              units: 'meters',
-              rotation: { x: 90, y: -90, z: 0 }
-            };
-
-            window.tb.loadObj(metlifeOptions, (model) => {
-              model.setCoords([105.854444, 21.028511]);
-              model.setRotation({ x: 0, y: 0, z: 0 });
-              window.tb.add(model);
-            });
-
-            const houseOptions = {
-              obj: 'https://docs.mapbox.com/mapbox-gl-js/assets/34M_17/34M_17.gltf',
-              type: 'gltf',
-              scale: { x: 2, y: 2, z: 2 },
-              units: 'meters',
-              rotation: { x: 90, y: 0, z: 0 }
-            };
-
-            window.tb.loadObj(houseOptions, (houseModel) => {
-              houseModel.setCoords([105.855000, 21.031500]);
-              houseModel.setRotation({ x: 0, y: 0, z: 0 });
-              window.tb.add(houseModel);
-            });
-
-            const houseOptions2 = {
-              obj: '/models/house.glb', // Sử dụng đường dẫn public URL thay vì import
-              type: 'glb',
-              scale: { x: 80, y: 80, z: 80 },
-              units: 'meters',
-              rotation: { x: 90, y: 0, z: 0 }
-            };
-
-            window.tb.loadObj(houseOptions2, (houseModel) => {
-              houseModel.setCoords([105.852100, 21.032500]);
-              houseModel.setRotation({ x: 0, y: 0, z: 0 });
-              window.tb.add(houseModel);
-            });
-          },
-          render: function () {
-            window.tb.update();
-          }
-        });
-      }
-    });
-
-    return () => {
-      if (mapRef.current) {
-        mapRef.current.remove();
-        mapRef.current = null;
-      }
-    };
-  }, []);
-
-  return <div ref={mapContainerRef} style={{ height: '100vh', width: '100%' }} />;
+      {/* Marker cho Tháp Rùa */}
+      <Marker position={thapRuaPosition}>
+        <Popup>
+          <div>
+            <h3>Tháp Rùa</h3>
+            <p>Tháp Rùa là một ngôi tháp nhỏ nằm ở trung tâm Hồ Gươm, quận Hoàn Kiếm, thành phố Hà Nội.</p>
+            <p><strong>Tọa độ:</strong> 21°01′40″N 105°51′08″E</p>
+            <p><strong>Địa chỉ:</strong> Hồ Hoàn Kiếm, quận Hoàn Kiếm, thành phố Hà Nội</p>
+            <p><strong>Ranh giới:</strong> Đảo Ngọc Sơn</p>
+          </div>
+        </Popup>
+      </Marker>
+    </MapContainer>
+  );
 };
 
 export default MapboxExample;

@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import mapboxgl from 'mapbox-gl';
 import { Threebox } from 'threebox-plugin';
 import hospitalIcon from './hospital.png'; // Đảm bảo ảnh có trong src hoặc public nếu dùng URL
+// Xóa dòng import homeIcon vì nó gây lỗi webpack
 
 import 'mapbox-gl/dist/mapbox-gl.css';
 
@@ -79,6 +80,20 @@ const MapboxExample = () => {
 
             window.tb.loadObj(houseOptions, (houseModel) => {
               houseModel.setCoords([105.855000, 21.031500]);
+              houseModel.setRotation({ x: 0, y: 0, z: 0 });
+              window.tb.add(houseModel);
+            });
+
+            const houseOptions2 = {
+              obj: '/models/house.glb', // Sử dụng đường dẫn public URL thay vì import
+              type: 'glb',
+              scale: { x: 80, y: 80, z: 80 },
+              units: 'meters',
+              rotation: { x: 90, y: 0, z: 0 }
+            };
+
+            window.tb.loadObj(houseOptions2, (houseModel) => {
+              houseModel.setCoords([105.852100, 21.032500]);
               houseModel.setRotation({ x: 0, y: 0, z: 0 });
               window.tb.add(houseModel);
             });
