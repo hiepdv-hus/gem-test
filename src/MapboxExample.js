@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
+import MonumentModal from './MonumentModal';
 
 const MapboxExample = () => {
   const mapContainerRef = useRef(null);
@@ -8,6 +9,8 @@ const MapboxExample = () => {
   const markerRef = useRef(null);
   const popupRef = useRef(null);
   const [showIcon, setShowIcon] = useState(true);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedMonument, setSelectedMonument] = useState(null);
 
   // Tọa độ chính xác của Tháp Rùa: 21°01′40″N 105°51′08″E
   // Chuyển đổi: 21°01′40″ = 21.0278°, 105°51′08″ = 105.8522°
@@ -16,6 +19,16 @@ const MapboxExample = () => {
   // Ranh giới hành chính - hình tròn bao quanh Tháp Rùa
   // Bán kính tính bằng mét, dễ điều chỉnh
   const administrativeRadius = 15; // 15 mét
+
+  // Dữ liệu di tích
+  const monumentInfo = {
+    name: 'Tháp Rùa',
+    description: 'Tháp Rùa là một ngôi tháp nhỏ nằm ở trung tâm Hồ Gươm, quận Hoàn Kiếm, thành phố Hà Nội. Đây là một trong những biểu tượng văn hóa nổi tiếng của thủ đô.',
+    coordinates: '21°01′40″N 105°51′08″E',
+    address: 'Hồ Hoàn Kiếm, quận Hoàn Kiếm, thành phố Hà Nội',
+    yearBuilt: '1886',
+    modelPath: '/House.glb' // Đường dẫn đến model 3D
+  };
 
   useEffect(() => {
     if (!mapContainerRef.current) return;
@@ -126,32 +139,26 @@ const MapboxExample = () => {
       map.setLayoutProperty('boundary-circle-fill', 'visibility', 'none');
       map.setLayoutProperty('boundary-circle-stroke', 'visibility', 'none');
 
-      // Tạo popup
-      const popupContent = `
-        <div>
-          <h3>Tháp Rùa</h3>
-          <p>Tháp Rùa là một ngôi tháp nhỏ nằm ở trung tâm Hồ Gươm, quận Hoàn Kiếm, thành phố Hà Nội.</p>
-          <p><strong>Tọa độ:</strong> 21°01′40″N 105°51′08″E</p>
-          <p><strong>Địa chỉ:</strong> Hồ Hoàn Kiếm, quận Hoàn Kiếm, thành phố Hà Nội</p>
-          <p><strong>Ranh giới:</strong> Đảo Ngọc Sơn</p>
-        </div>
-      `;
+      // Tạo marker element ẨN (invisible) nhưng vẫn click được
+      const markerEl = document.createElement('div');
+      markerEl.className = 'monument-marker';
+      markerEl.style.width = '40px';
+      markerEl.style.height = '40px';
+      // Ẩn icon nhưng vẫn giữ chức năng click
+      markerEl.style.opacity = '0';
+      markerEl.style.cursor = 'pointer';
 
-      popupRef.current = new mapboxgl.Popup({ offset: 25 })
-        .setHTML(popupContent);
+      // Thêm event listener để mở modal khi click
+      markerEl.addEventListener('click', () => {
+        setSelectedMonument(monumentInfo);
+        setIsModalOpen(true);
+      });
 
-      // Tạo invisible marker để click vào vị trí mở popup
-      const invisibleEl = document.createElement('div');
-      invisibleEl.style.width = '30px';
-      invisibleEl.style.height = '30px';
-      invisibleEl.style.cursor = 'pointer';
-      invisibleEl.style.opacity = '0';
-
+      // Thêm marker vào map
       markerRef.current = new mapboxgl.Marker({
-        element: invisibleEl
+        element: markerEl
       })
         .setLngLat(thapRuaPosition)
-        .setPopup(popupRef.current)
         .addTo(map);
     });
 
@@ -163,7 +170,18 @@ const MapboxExample = () => {
     };
   }, []);
 
-  return <div ref={mapContainerRef} style={{ height: '100vh', width: '100%' }} />;
+  return (
+    <>
+      <div ref={mapContainerRef} style={{ height: '100vh', width: '100%' }} />
+      {selectedMonument && (
+        <MonumentModal
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          monumentData={selectedMonument}
+        />
+      )}
+    </>
+  );
 };
 
 export default MapboxExample;
